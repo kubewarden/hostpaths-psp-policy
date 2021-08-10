@@ -1,15 +1,19 @@
 package main
 
 import (
-	mapset "github.com/deckarep/golang-set"
 	"github.com/kubewarden/gjson"
 	kubewarden "github.com/kubewarden/policy-sdk-go"
 
 	"fmt"
 )
 
+type HostPath struct {
+	PathPrefix string `json:"pathPrefix"`
+	ReadOnly   bool   `json:"readOnly"`
+}
+
 type Settings struct {
-	DeniedNames mapset.Set `json:"denied_names"`
+	AllowedHostPaths []HostPath `json:"allowedHostPaths"`
 }
 
 // Builds a new Settings instance starting from a validation
@@ -17,24 +21,36 @@ type Settings struct {
 // {
 //    "request": ...,
 //    "settings": {
-//       "denied_names": [...]
+//       "allowedHostPaths": [
+//       	{
+//       	  "pathPrefix": "foo",
+//       	  "readOnly": true,
+//          }
+//       ]
 //    }
 // }
 func NewSettingsFromValidationReq(payload []byte) (Settings, error) {
 	return newSettings(
 		payload,
-		"settings.denied_names")
+		"settings.allowedHostPaths")
 }
 
 // Builds a new Settings instance starting from a Settings
 // payload:
 // {
-//    "denied_names": ...
+//  "settings": {
+//     "allowedHostPaths": [
+//     	{
+//     	  "pathPrefix": "foo",
+//     	  "readOnly": true,
+//        }
+//     ]
+//  }
 // }
 func NewSettingsFromValidateSettingsPayload(payload []byte) (Settings, error) {
 	return newSettings(
 		payload,
-		"denied_names")
+		"settings.allowedHostPaths")
 }
 
 func newSettings(payload []byte, paths ...string) (Settings, error) {
@@ -44,19 +60,46 @@ func newSettings(payload []byte, paths ...string) (Settings, error) {
 
 	data := gjson.GetManyBytes(payload, paths...)
 
-	deniedNames := mapset.NewThreadUnsafeSet()
+	var err error
+	allowedHostPaths := make([]HostPath, 0)
+
+	if data[0].String() == "" {
+		// empty settings
+		return Settings{
+			AllowedHostPaths: allowedHostPaths,
+		}, nil
+	}
+
 	data[0].ForEach(func(_, entry gjson.Result) bool {
-		deniedNames.Add(entry.String())
-		return true
+		dataHostPath := gjson.GetManyBytes([]byte(entry.String()),
+			"pathPrefix",
+			"readOnly",
+		)
+		if !dataHostPath[0].Exists() {
+			err = fmt.Errorf("pathPrefix key is missing")
+			return false // stop iterating
+		}
+		if !dataHostPath[1].Exists() {
+			err = fmt.Errorf("readOnly key is missing")
+			return false // stop iterating
+		}
+
+		hostPath := HostPath{
+			PathPrefix: dataHostPath[0].String(),
+			ReadOnly:   dataHostPath[1].Bool(),
+		}
+		allowedHostPaths = append(allowedHostPaths, hostPath)
+		return true // continue iterating
 	})
 
 	return Settings{
-		DeniedNames: deniedNames,
-	}, nil
+		AllowedHostPaths: allowedHostPaths,
+	}, err
 }
 
-// No special check has to be done
 func (s *Settings) Valid() bool {
+	// each entry of allowedHostPaths needs to have 1 pathPrefix and 1 readOnly,
+	// which is checked on marshalling
 	return true
 }
 
