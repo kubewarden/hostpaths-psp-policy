@@ -32,16 +32,8 @@ func validate(payload []byte) ([]byte, error) {
 		return kubewarden.AcceptRequest()
 	}
 
-	var volumeMounts gjson.Result
-	// workaround bug when obtaining array
-	// request.object.spec.containers.volumeMounts
-	for _, object := range gjson.GetBytes(payload,
-		"request.object.spec.containers").Array() {
-		if gjson.Get(object.String(), "volumeMounts").Exists() {
-			volumeMounts = gjson.Get(object.String(), "volumeMounts")
-		}
-	}
-
+	volumeMounts := gjson.GetBytes(payload,
+		"request.object.spec.containers.#(volumeMounts).volumeMounts")
 	if !volumeMounts.Exists() {
 		// pod defines no mounts, accepting
 		return kubewarden.AcceptRequest()
