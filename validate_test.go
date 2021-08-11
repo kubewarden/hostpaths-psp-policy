@@ -90,6 +90,22 @@ func TestApproval(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:     "multiple containers precedence readonly most specific path",
+			testData: "test_data/request-pod-multiple-containers.json",
+			settings: Settings{
+				AllowedHostPaths: []HostPath{
+					{
+						PathPrefix: "/var",
+						ReadOnly:   false,
+					},
+					{
+						PathPrefix: "/var/local",
+						ReadOnly:   true,
+					},
+				},
+			},
+		},
 	} {
 		payload, err := kubewarden_testing.BuildValidationRequest(
 			tcase.testData,
