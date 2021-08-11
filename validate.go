@@ -30,13 +30,6 @@ func validate(payload []byte) ([]byte, error) {
 		return kubewarden.AcceptRequest()
 	}
 
-	volumeMounts := gjson.GetBytes(payload,
-		"request.object.spec.containers.#(volumeMounts).volumeMounts")
-	if !volumeMounts.Exists() {
-		// pod defines no mounts, accepting
-		return kubewarden.AcceptRequest()
-	}
-
 	logger.DebugWithFields("validating pod object", func(e onelog.Entry) {
 		name := gjson.GetBytes(payload, "request.object.metadata.name").String()
 		namespace := gjson.GetBytes(payload,
@@ -45,46 +38,67 @@ func validate(payload []byte) ([]byte, error) {
 		e.String("namespace", namespace)
 	})
 
+	// build list of volumeMounts from all the initContainers and containers:
+	volumeMounts := make([]gjson.Result, 0)
+	cases := []string{
+		"request.object.spec.initContainers",
+		"request.object.spec.containers",
+	}
+	for _, c := range cases {
+		containers := gjson.GetBytes(payload, c)
+		for _, container := range containers.Array() {
+			containerVolumeMounts := gjson.Get(container.String(),
+				"volumeMounts")
+			for _, mount := range containerVolumeMounts.Array() {
+				volumeMounts = append(volumeMounts, mount)
+			}
+		}
+	}
+
+out: // label for skipping all fors
 	for _, volume := range volumes.Array() {
-		if gjson.Get(volume.String(), "hostPath").Exists() {
-			volumeName := gjson.Get(volume.String(), "name").String()
+		for _, mount := range volumeMounts {
+			if gjson.Get(volume.String(), "hostPath").Exists() {
+				// volume is of type hostPath
 
-			// obtain volumeMount object matching the 'volume.name'
-			mount := gjson.Get(volumeMounts.String(),
-				fmt.Sprintf("#(name==\"%s\")", volumeName))
+				// if volumeMount object matches the 'volume.name':
+				if gjson.Get(volume.String(), "name").String() == /* mount name */
+					gjson.Get(mount.String(), "name").String() { /* volume name */
+					// volume is a hostpath and it in use, validate against
+					// settings
 
-			if mount.Exists() {
-				// is a hostpath and is in use, validate against settings
+					readOnly := false // volumeMount.readOnly missing means 'false'
+					if gjson.Get(mount.String(), "readOnly").Exists() {
+						readOnly = gjson.Get(mount.String(), "readOnly").Bool()
+					}
 
-				readOnly := false // volumeMount.readOnly missing means 'false'
-				if gjson.Get(mount.String(), "readOnly").Exists() {
-					readOnly = gjson.Get(mount.String(), "readOnly").Bool()
-				}
+					path := gjson.Get(volume.String(), "hostPath.path").String()
 
-				path := gjson.Get(volume.String(), "hostPath.path").String()
-
-				match := false
-				// readOnly attribute of most specific AllowedHostPath takes precendence:
-				previousAllowedHostPath := ""
-				for _, allowedHostPath := range settings.AllowedHostPaths {
-					if hasPathPrefix(path, allowedHostPath.PathPrefix) {
-						// current setting allowedHostPath matches path of volumeMount
-						if hasPathPrefix(allowedHostPath.PathPrefix, previousAllowedHostPath) {
-							// allowedHostPath is more specific (and has precendence over
-							//	past allowedHostPath), or the same path
-							match = true
-							err = validatePath(path, readOnly, allowedHostPath)
-							previousAllowedHostPath = allowedHostPath.PathPrefix
+					match := false
+					// readOnly attribute of most specific AllowedHostPath takes precendence:
+					previousAllowedHostPath := ""
+					for _, allowedHostPath := range settings.AllowedHostPaths {
+						if hasPathPrefix(path, allowedHostPath.PathPrefix) {
+							// current setting allowedHostPath matches path of volumeMount
+							if hasPathPrefix(allowedHostPath.PathPrefix, previousAllowedHostPath) {
+								// allowedHostPath is more specific (and has precendence over
+								//	past allowedHostPath), or the same path
+								match = true
+								err = validatePath(path, readOnly, allowedHostPath)
+								previousAllowedHostPath = allowedHostPath.PathPrefix
+							}
 						}
 					}
-				}
-				if !match {
-					// path didn't match against any PathPrefix in settings
-					err = fmt.Errorf("hostPath '%s' is not in the AllowedHostPaths list",
-						path)
-				}
-				if err != nil {
-					break // stop first for, a path was not allowed against all settings, reject
+					if !match {
+						// path didn't match against any PathPrefix in settings
+						err = fmt.Errorf("hostPath '%s' is not in the AllowedHostPaths list",
+							path)
+					}
+					if err != nil {
+						// a path was not allowed against all settings, reject,
+						// stop iterating completely through volumes & mounts
+						break out
+					}
 				}
 			}
 		}
