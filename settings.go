@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+
 	"github.com/kubewarden/gjson"
 	kubewarden "github.com/kubewarden/policy-sdk-go"
 
@@ -76,12 +78,23 @@ func newSettings(payload []byte, paths ...string) (Settings, error) {
 			"readOnly",
 		)
 		if !dataHostPath[0].Exists() {
-			err = fmt.Errorf("pathPrefix key is missing")
-			return false // stop iterating
+			errMsg := "pathPrefix key is missing"
+			if err == nil {
+				err = errors.New(errMsg)
+			} else {
+				err = fmt.Errorf("%w; %s", err, errMsg)
+			}
+			return true // continue iterating
 		}
 		if !dataHostPath[1].Exists() {
-			err = fmt.Errorf("readOnly key is missing")
-			return false // stop iterating
+			errMsg := fmt.Sprintf("readOnly key for pathPrefix '%s' is missing",
+				dataHostPath[0].String())
+			if err == nil {
+				err = errors.New(errMsg)
+			} else {
+				err = fmt.Errorf("%w; %s", err, errMsg)
+			}
+			return true // continue iterating
 		}
 
 		hostPath := HostPath{

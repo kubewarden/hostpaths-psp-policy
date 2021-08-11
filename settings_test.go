@@ -87,13 +87,16 @@ func TestParsingSettingsWithEntriesMissing(t *testing.T) {
 				"settings": {
 					"allowedHostPaths": [
 						{
+							"readOnly": true
+						},
+						{
 							"pathPrefix": "/foo"
 						}
 					]
 				}
 			}
 			`,
-			error: "readOnly key is missing",
+			error: "pathPrefix key is missing; readOnly key for pathPrefix '/foo' is missing",
 		},
 	} {
 		t.Run(tcase.name, func(t *testing.T) {
