@@ -168,6 +168,23 @@ func TestRejection(t *testing.T) {
 			error: "hostPath '/data' should be readOnly 'false'",
 		},
 		{
+			name:     "volumeMount /var/local/aaa should be readOnly",
+			testData: "test_data/request-pod-hostpaths.json",
+			settings: Settings{
+				AllowedHostPaths: []HostPath{
+					{
+						PathPrefix: "/data",
+						ReadOnly:   false,
+					},
+					{
+						PathPrefix: "/var/local/aaa",
+						ReadOnly:   true,
+					},
+				},
+			},
+			error: "hostPath '/data' should be readOnly 'false'",
+		},
+		{
 			name:     "precedence read only least specific path",
 			testData: "test_data/request-pod-precedence-least.json",
 			settings: Settings{
