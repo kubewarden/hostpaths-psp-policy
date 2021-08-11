@@ -17,8 +17,6 @@ func validate(payload []byte) ([]byte, error) {
 			kubewarden.Code(400))
 	}
 
-	logger.Info("validating request")
-
 	if len(settings.AllowedHostPaths) == 0 {
 		// empty settings, accepting
 		return kubewarden.AcceptRequest()

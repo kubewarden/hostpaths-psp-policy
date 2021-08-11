@@ -108,7 +108,7 @@ func validateSettings(payload []byte) ([]byte, error) {
 
 	settings, err := NewSettingsFromValidateSettingsPayload(payload)
 	if err != nil {
-		return []byte{}, err
+		return kubewarden.RejectSettings(kubewarden.Message(err.Error()))
 	}
 
 	if settings.Valid() {
