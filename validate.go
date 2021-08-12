@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -53,15 +54,14 @@ func validate(payload []byte) ([]byte, error) {
 		}
 	}
 
-out: // label for skipping all fors
 	for _, volume := range volumes.Array() {
 		if gjson.Get(volume.String(), "hostPath").Exists() {
 			// volume is of type hostPath
 			for _, mount := range volumeMounts {
 
 				// if volumeMount object matches the 'volume.name':
-				if gjson.Get(volume.String(), "name").String() == /* mount name */
-					gjson.Get(mount.String(), "name").String() { /* volume name */
+				mountName := gjson.Get(mount.String(), "name").String()
+				if mountName == gjson.Get(volume.String(), "name").String() { /* == volume name */
 					// volume is a hostpath and it in use, validate against
 					// settings
 
@@ -73,6 +73,7 @@ out: // label for skipping all fors
 					path := gjson.Get(volume.String(), "hostPath.path").String()
 
 					match := false
+					var errsMount error // all errors of current mount
 					// readOnly attribute of most specific AllowedHostPath takes precendence:
 					previousAllowedHostPath := ""
 					for _, allowedHostPath := range settings.AllowedHostPaths {
@@ -82,20 +83,42 @@ out: // label for skipping all fors
 								// allowedHostPath is more specific (and has precendence over
 								//	past allowedHostPath), or the same path
 								match = true
-								err = validatePath(path, readOnly, allowedHostPath)
+								errMount := validatePath(path, mountName, readOnly, allowedHostPath)
+								// build all errors for this mount:
+								if errMount == nil {
+									// drop errors in errsMount, we found a more
+									// specific path that validates the current
+									// mount
+									errsMount = nil
+								} else {
+									// we found even more errors for this specific mount, append
+									if errsMount == nil {
+										errsMount = errMount
+									} else {
+										errsMount = fmt.Errorf("%w; %s", errsMount, errMount)
+									}
+								}
 								previousAllowedHostPath = allowedHostPath.PathPrefix
 							}
 						}
 					}
+					// concat to global err:
+					if errsMount != nil {
+						if err == nil {
+							err = errsMount
+						} else {
+							err = fmt.Errorf("%w; %s", err, errsMount)
+						}
+					}
 					if !match {
 						// path didn't match against any PathPrefix in settings
-						err = fmt.Errorf("hostPath '%s' is not in the AllowedHostPaths list",
-							path)
-					}
-					if err != nil {
-						// a path was not allowed against all settings, reject,
-						// stop iterating completely through volumes & mounts
-						break out
+						errMsg := fmt.Sprintf("hostPath '%s' mounted as '%s' is not in the AllowedHostPaths list",
+							path, mountName)
+						if err == nil {
+							err = errors.New(errMsg)
+						} else {
+							err = fmt.Errorf("%w; %s", err, errMsg)
+						}
 					}
 				}
 			}
@@ -120,11 +143,11 @@ out: // label for skipping all fors
 
 // validatePath validates the path prefix and its readOnly state against the
 // passed hostPath, and returns a matching error if failed.
-func validatePath(path string, readOnly bool, hostPath HostPath) (err error) {
+func validatePath(path, mountName string, readOnly bool, hostPath HostPath) (err error) {
 	if hasPathPrefix(path, hostPath.PathPrefix) {
 		if readOnly != hostPath.ReadOnly {
-			return fmt.Errorf("hostPath '%s' should be readOnly '%t'",
-				path, hostPath.ReadOnly)
+			return fmt.Errorf("hostPath '%s' mounted as '%s' should be readOnly '%t'",
+				path, mountName, hostPath.ReadOnly)
 		}
 	}
 	return nil
