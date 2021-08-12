@@ -55,9 +55,9 @@ func validate(payload []byte) ([]byte, error) {
 
 out: // label for skipping all fors
 	for _, volume := range volumes.Array() {
-		for _, mount := range volumeMounts {
-			if gjson.Get(volume.String(), "hostPath").Exists() {
-				// volume is of type hostPath
+		if gjson.Get(volume.String(), "hostPath").Exists() {
+			// volume is of type hostPath
+			for _, mount := range volumeMounts {
 
 				// if volumeMount object matches the 'volume.name':
 				if gjson.Get(volume.String(), "name").String() == /* mount name */
