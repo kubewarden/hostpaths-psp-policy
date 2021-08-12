@@ -1,5 +1,12 @@
 {
-  "denied_names": [
-    "tls-example-ingress"
-  ]
+   "allowedHostPaths": [
+      {
+         "pathPrefix": "/foo",
+         "readOnly": true
+      },
+      {
+         "pathPrefix": "/bar",
+         "readOnly": false
+      }
+   ]
 }
