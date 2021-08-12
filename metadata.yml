@@ -14,7 +14,8 @@ annotations:
   io.kubewarden.policy.license: Apache-2.0
   io.kubewarden.policy.usage: |
     Replacement for the Kubernetes Pod Security Policy that controls the usage of
-    hostPath volumes.
+    `hostPath` volumes. The policy inspects both the containers and the init
+    containers that are using `hostPath` volumes.
 
     ## Settings
 
