@@ -238,6 +238,31 @@ func TestRejection(t *testing.T) {
 			},
 			error: "hostPath '/data' mounted as 'test-data' is not in the AllowedHostPaths list",
 		},
+		{
+			name:     "several errors",
+			testData: "test_data/request-pod-hostpaths.json",
+			settings: Settings{
+				AllowedHostPaths: []HostPath{
+					{
+						PathPrefix: "/data",
+						ReadOnly:   false,
+					},
+					{
+						PathPrefix: "/va",
+						ReadOnly:   true,
+					},
+					{
+						PathPrefix: "/var/local/aaa",
+						ReadOnly:   true,
+					},
+				},
+			},
+			error: "hostPath '/data' mounted as 'test-data' should be readOnly 'false';" +
+				" hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list;" +
+				" hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list;" +
+				" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true';" +
+				" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
+		},
 	} {
 		payload, err := kubewarden_testing.BuildValidationRequest(
 			tcase.testData,
