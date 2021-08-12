@@ -83,11 +83,6 @@
                 "terminationMessagePolicy": "File",
                 "volumeMounts": [
                     {
-                        "mountPath": "/test-data",
-                        "name": "test-data",
-                        "readOnly": true
-                    },
-                    {
                         "mountPath": "/test-var",
                         "name": "test-var"
                     },

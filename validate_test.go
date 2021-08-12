@@ -152,7 +152,7 @@ func TestRejection(t *testing.T) {
 					},
 				},
 			},
-			error: "hostPath '/data' is not in the AllowedHostPaths list",
+			error: "hostPath '/data' mounted as 'test-data' is not in the AllowedHostPaths list",
 		},
 		{
 			name:     "volumeMount /data should be readWrite",
@@ -160,12 +160,21 @@ func TestRejection(t *testing.T) {
 			settings: Settings{
 				AllowedHostPaths: []HostPath{
 					{
+						// testcase:
 						PathPrefix: "/data",
+						ReadOnly:   false,
+					},
+					{
+						PathPrefix: "/var",
+						ReadOnly:   false,
+					},
+					{
+						PathPrefix: "/var/local/aaa",
 						ReadOnly:   false,
 					},
 				},
 			},
-			error: "hostPath '/data' should be readOnly 'false'",
+			error: "hostPath '/data' mounted as 'test-data' should be readOnly 'false'",
 		},
 		{
 			name:     "volumeMount /var/local/aaa should be readOnly",
@@ -174,15 +183,21 @@ func TestRejection(t *testing.T) {
 				AllowedHostPaths: []HostPath{
 					{
 						PathPrefix: "/data",
+						ReadOnly:   true,
+					},
+					{
+						PathPrefix: "/var",
 						ReadOnly:   false,
 					},
 					{
+						// testcase:
 						PathPrefix: "/var/local/aaa",
 						ReadOnly:   true,
 					},
 				},
 			},
-			error: "hostPath '/data' should be readOnly 'false'",
+			error: "hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true';" +
+				" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
 		},
 		{
 			name:     "precedence read only least specific path",
@@ -199,7 +214,7 @@ func TestRejection(t *testing.T) {
 					},
 				},
 			},
-			error: "hostPath '/var/local/aaa' should be readOnly 'true'",
+			error: "hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
 		},
 		{
 			name:     "disallow /data if prefix is /dat",
@@ -207,12 +222,21 @@ func TestRejection(t *testing.T) {
 			settings: Settings{
 				AllowedHostPaths: []HostPath{
 					{
+						// testcase:
 						PathPrefix: "/dat",
 						ReadOnly:   true,
 					},
+					{
+						PathPrefix: "/var",
+						ReadOnly:   false,
+					},
+					{
+						PathPrefix: "/var/local/aaa",
+						ReadOnly:   false,
+					},
 				},
 			},
-			error: "hostPath '/data' is not in the AllowedHostPaths list",
+			error: "hostPath '/data' mounted as 'test-data' is not in the AllowedHostPaths list",
 		},
 	} {
 		payload, err := kubewarden_testing.BuildValidationRequest(
