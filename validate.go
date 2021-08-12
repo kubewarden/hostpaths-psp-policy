@@ -49,9 +49,7 @@ func validate(payload []byte) ([]byte, error) {
 		for _, container := range containers.Array() {
 			containerVolumeMounts := gjson.Get(container.String(),
 				"volumeMounts")
-			for _, mount := range containerVolumeMounts.Array() {
-				volumeMounts = append(volumeMounts, mount)
-			}
+			volumeMounts = append(volumeMounts, containerVolumeMounts.Array()...)
 		}
 	}
 
