@@ -3,7 +3,11 @@
 @test "reject because /data is not in settings" {
   run kwctl run policy.wasm -r test_data/request-pod-hostpaths.json \
     --settings-json \
-    '{ "allowedHostPaths": [ {"pathPrefix": "/foo","readOnly": true} ] }'
+    '{ "allowedHostPaths": [
+           {"pathPrefix": "/var","readOnly": false},
+           {"pathPrefix": "/var/local/aaa","readOnly": false}
+        ]
+     }'
 
   # this prints the output when one the checks below fails
   echo "output = ${output}"
@@ -11,7 +15,7 @@
   # request rejected
   [ "$status" -eq 0 ]
   [ $(expr "$output" : '.*allowed.*false') -ne 0 ]
-  [ $(expr "$output" : ".*hostPath '/data' is not in the AllowedHostPaths list.*") -ne 0 ]
+  [ $(expr "$output" : ".*hostPath '/data' mounted as 'test-data' is not in the AllowedHostPaths list.*") -ne 0 ]
 }
 
 @test "accept because pod has no hostPath volumes" {
