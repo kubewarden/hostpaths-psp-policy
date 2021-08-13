@@ -40,19 +40,17 @@ func NewSettingsFromValidationReq(payload []byte) (Settings, error) {
 // Builds a new Settings instance starting from a Settings
 // payload:
 // {
-//  "settings": {
-//     "allowedHostPaths": [
-//     	{
-//     	  "pathPrefix": "foo",
-//     	  "readOnly": true,
-//        }
-//     ]
-//  }
+//   "allowedHostPaths": [
+//   	{
+//   	  "pathPrefix": "foo",
+//   	  "readOnly": true,
+//      }
+//   ]
 // }
 func NewSettingsFromValidateSettingsPayload(payload []byte) (Settings, error) {
 	return newSettings(
 		payload,
-		"settings.allowedHostPaths")
+		"allowedHostPaths")
 }
 
 func newSettings(payload []byte, paths ...string) (Settings, error) {
