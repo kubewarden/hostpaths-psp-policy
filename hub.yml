@@ -1,5 +1,5 @@
 name: psp-hostpaths
-description: PSP that controls usage of hostPath volumes
+description: A Pod Security Policy that controls usage of hostPath volumes
 homepage: https://github.com/kubewarden/psp-hostpaths-policy
 author:
   name: Kuberwarden devs
