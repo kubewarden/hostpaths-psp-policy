@@ -9,8 +9,8 @@ annotations:
   io.kubewarden.policy.title: psp-hostpaths
   io.kubewarden.policy.description: A Pod Security Policy that controls usage of hostPath volumes
   io.kubewarden.policy.author: Kubewarden devs
-  io.kubewarden.policy.url: https://github.com/kubewarden/psp-hostpaths-policy
-  io.kubewarden.policy.source: https://github.com/kubewarden/psp-hostpaths-policy
+  io.kubewarden.policy.url: https://github.com/kubewarden/hostpaths-psp-policy
+  io.kubewarden.policy.source: https://github.com/kubewarden/hostpaths-psp-policy
   io.kubewarden.policy.license: Apache-2.0
   io.kubewarden.policy.usage: |
     Replacement for the Kubernetes Pod Security Policy that controls the usage of
