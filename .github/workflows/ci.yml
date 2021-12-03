@@ -91,7 +91,7 @@ jobs:
     if: github.event.workflow_run.event != 'pull_request'
     runs-on: ubuntu-latest
     env:
-      OCI_TARGET: ghcr.io/kubewarden/policies/psp-hostpaths
+      OCI_TARGET: ghcr.io/kubewarden/policies/hostpaths-psp
       KWCTL_VERSION: v0.1.10
 
     steps:

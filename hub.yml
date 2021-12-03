@@ -1,11 +1,11 @@
-name: psp-hostpaths
+name: hostpaths-psp
 description: A Pod Security Policy that controls usage of hostPath volumes
 homepage: https://github.com/kubewarden/hostpaths-psp-policy
 author:
   name: Kuberwarden devs
   homepage: https://github.com/kubewarden
 download:
-  registry: ghcr.io/kubewarden/policies/psp-hostpaths:__TAG__
+  registry: ghcr.io/kubewarden/policies/hostpaths-psp:__TAG__
   url: https://github.com/kubewarden/hostpaths-psp-policy/releases/download/__TAG__/policy.wasm
 keywords:
   - PSP
