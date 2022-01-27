@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 @test "reject because /data is not in settings" {
-  run kwctl run policy.wasm -r test_data/request-pod-hostpaths.json \
+  run kwctl run annotated-policy.wasm -r test_data/request-pod-hostpaths.json \
     --settings-json \
     '{ "allowedHostPaths": [
            {"pathPrefix": "/var","readOnly": false},
@@ -19,7 +19,7 @@
 }
 
 @test "accept because pod has no hostPath volumes" {
-  run kwctl run policy.wasm -r test_data/request-pod-no-hostpaths.json \
+  run kwctl run annotated-policy.wasm -r test_data/request-pod-no-hostpaths.json \
     --settings-json \
     '{ "allowedHostPaths": [ {"pathPrefix": "/foo","readOnly": true} ] }'
 
@@ -32,7 +32,7 @@
 }
 
 @test "accept because /var/local has precedence over /var" {
-  run kwctl run policy.wasm -r test_data/request-pod-precedence.json \
+  run kwctl run annotated-policy.wasm -r test_data/request-pod-precedence.json \
     --settings-json \
     '{ "allowedHostPaths": [
            {"pathPrefix": "/var","readOnly": false},
