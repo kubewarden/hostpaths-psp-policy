@@ -1,19 +1,19 @@
 ---
-version: 0.1.6
+version: 0.1.7
 name: hostpaths-psp
 displayName: Hostpaths PSP
-createdAt: '2022-07-19T16:00:23+02:00'
+createdAt: '2023-02-17T16:26:40+00:00'
 description: A Pod Security Policy that controls usage of hostPath volumes
 license: Apache-2.0
 homeURL: https://github.com/kubewarden/hostpaths-psp-policy
 containersImages:
 - name: policy
-  image: ghcr.io/kubewarden/policies/hostpaths-psp:v0.1.6
+  image: ghcr.io/kubewarden/policies/hostpaths-psp:v0.1.7
 install: |
   The policy can be obtained using [`kwctl`](https://github.com/kubewarden/kwctl/):
 
   ```console
-  kwctl pull ghcr.io/kubewarden/policies/hostpaths-psp:v0.1.6
+  kwctl pull ghcr.io/kubewarden/policies/hostpaths-psp:v0.1.7
   ```
 keywords:
 - psp
@@ -21,7 +21,7 @@ keywords:
 - pod
 links:
 - name: policy
-  url: https://github.com/kubewarden/hostpaths-psp-policy/releases/download/v0.1.6/policy.wasm
+  url: https://github.com/kubewarden/hostpaths-psp-policy/releases/download/v0.1.7/policy.wasm
 - name: source
   url: https://github.com/kubewarden/hostpaths-psp-policy
 provider:
@@ -55,9 +55,9 @@ annotations:
       group: Settings
       label: Allow host path
       hide_input: true
-      type: map[
+      type: sequence[
       variable: allowedHostPaths
-      subquestions:
+      sequence_questions:
         - default: ''
           description: >-
             Allows hostPath volumes to mount a path that begins with an allowed
@@ -65,10 +65,10 @@ annotations:
           group: Settings
           label: Path prefix
           type: string
-          variable: allowedHostPaths.pathPrefix
+          variable: pathPrefix
         - default: false
           tooltip: Indicates if the volume must be mounted read-only.
           group: Settings
           label: Read only
           type: boolean
-          variable: allowedHostPaths.readOnly
+          variable: readOnly
