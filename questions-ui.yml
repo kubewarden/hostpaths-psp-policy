@@ -14,9 +14,9 @@ questions:
   group: Settings
   label: Allow host path
   hide_input: true
-  type: map[
+  type: sequence[
   variable: allowedHostPaths
-  subquestions:
+  sequence_questions:
     - default: ''
       description: >-
         Allows hostPath volumes to mount a path that begins with an allowed
@@ -24,10 +24,10 @@ questions:
       group: Settings
       label: Path prefix
       type: string
-      variable: allowedHostPaths.pathPrefix
+      variable: pathPrefix
     - default: false
       tooltip: Indicates if the volume must be mounted read-only.
       group: Settings
       label: Read only
       type: boolean
-      variable: allowedHostPaths.readOnly
+      variable: readOnly
