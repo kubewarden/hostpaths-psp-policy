@@ -9,28 +9,20 @@ import (
 	"fmt"
 )
 
-type HostPath struct {
-	PathPrefix string `json:"pathPrefix"`
-	ReadOnly   bool   `json:"readOnly"`
-}
-
-type Settings struct {
-	AllowedHostPaths []HostPath `json:"allowedHostPaths"`
-}
-
 // Builds a new Settings instance starting from a validation
 // request payload:
-// {
-//    "request": ...,
-//    "settings": {
-//       "allowedHostPaths": [
-//       	{
-//       	  "pathPrefix": "foo",
-//       	  "readOnly": true,
-//          }
-//       ]
-//    }
-// }
+//
+//	{
+//	   "request": ...,
+//	   "settings": {
+//	      "allowedHostPaths": [
+//	      	{
+//	      	  "pathPrefix": "foo",
+//	      	  "readOnly": true,
+//	         }
+//	      ]
+//	   }
+//	}
 func NewSettingsFromValidationReq(payload []byte) (Settings, error) {
 	return newSettings(
 		payload,
@@ -39,14 +31,15 @@ func NewSettingsFromValidationReq(payload []byte) (Settings, error) {
 
 // Builds a new Settings instance starting from a Settings
 // payload:
-// {
-//   "allowedHostPaths": [
-//   	{
-//   	  "pathPrefix": "foo",
-//   	  "readOnly": true,
-//      }
-//   ]
-// }
+//
+//	{
+//	  "allowedHostPaths": [
+//	  	{
+//	  	  "pathPrefix": "foo",
+//	  	  "readOnly": true,
+//	     }
+//	  ]
+//	}
 func NewSettingsFromValidateSettingsPayload(payload []byte) (Settings, error) {
 	return newSettings(
 		payload,
