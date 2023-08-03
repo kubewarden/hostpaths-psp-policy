@@ -2,12 +2,20 @@ package main
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/kubewarden/gjson"
 	kubewarden "github.com/kubewarden/policy-sdk-go"
-
-	"fmt"
 )
+
+type HostPath struct {
+	PathPrefix string `json:"pathPrefix"`
+	ReadOnly   bool   `json:"readOnly"`
+}
+
+type Settings struct {
+	AllowedHostPaths []HostPath `json:"allowedHostPaths"`
+}
 
 // Builds a new Settings instance starting from a validation
 // request payload:
