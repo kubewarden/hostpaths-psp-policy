@@ -7,7 +7,7 @@
 version: 0.1.10
 name: hostpaths-psp
 displayName: Hostpaths PSP
-createdAt: 2023-08-03T10:44:13.89418627Z
+createdAt: 2023-10-16T08:36:54.8789282Z
 description: A Pod Security Policy that controls usage of hostPath volumes
 license: Apache-2.0
 homeURL: https://github.com/kubewarden/hostpaths-psp-policy
@@ -27,6 +27,10 @@ install: |
   The policy can be obtained using [`kwctl`](https://github.com/kubewarden/kwctl):
   ```console
   kwctl pull ghcr.io/kubewarden/policies/hostpaths-psp:v0.1.10
+  ```
+  Then, generate the policy manifest and tune it to your liking. For example:
+  ```console
+  kwctl scaffold manifest -t ClusterAdmissionPolicy registry://ghcr.io/kubewarden/policies/hostpaths-psp:v0.1.10
   ```
 maintainers:
 - name: Kubewarden developers
