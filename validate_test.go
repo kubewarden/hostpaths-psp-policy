@@ -204,8 +204,8 @@ func TestRejection(t *testing.T) {
 					},
 				},
 			},
-			error: "hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true';" +
-				" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
+			error: "hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'\n" +
+				"hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
 		},
 		{
 			name:     "precedence read only least specific path",
@@ -265,11 +265,11 @@ func TestRejection(t *testing.T) {
 					},
 				},
 			},
-			error: "hostPath '/data' mounted as 'test-data' should be readOnly 'false';" +
-				" hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list;" +
-				" hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list;" +
-				" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true';" +
-				" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
+			error: "hostPath '/data' mounted as 'test-data' should be readOnly 'false'\n" +
+				"hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list\n" +
+				"hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list\n" +
+				"hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'\n" +
+				"hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
 		},
 	} {
 		payload, err := kubewarden_testing.BuildValidationRequestFromFixture(
@@ -426,11 +426,11 @@ func TestWorkloadTypes(t *testing.T) {
 			},
 		},
 	}
-	commontError := "hostPath '/data' mounted as 'test-data' should be readOnly 'false';" +
-		" hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list;" +
-		" hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list;" +
-		" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true';" +
-		" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'"
+	commontError := "hostPath '/data' mounted as 'test-data' should be readOnly 'false'\n" +
+		"hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list\n" +
+		"hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list\n" +
+		"hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'\n" +
+		"hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'"
 	for _, tcase := range []struct {
 		name     string
 		kind     kubewarden_protocol.GroupVersionKind

@@ -74,42 +74,27 @@ func validate(payload []byte) ([]byte, error) {
 						// allowedHostPath is more specific (and has precendence over
 						//	past allowedHostPath), or the same path
 						match = true
-						errMount := validatePath(*volume.HostPath.Path, *mount.Name, mount.ReadOnly, allowedHostPath)
+						validationError := validatePath(*volume.HostPath.Path, *mount.Name, mount.ReadOnly, allowedHostPath)
 						// build all errors for this mount:
-						if errMount == nil {
+						if validationError == nil {
 							// drop errors in errsMount, we found a more
 							// specific path that validates the current
 							// mount
 							errsMount = nil
 						} else {
 							// we found even more errors for this specific mount, append
-							if errsMount == nil {
-								errsMount = errMount
-							} else {
-								errsMount = fmt.Errorf("%w; %s", errsMount, errMount)
-							}
+							errsMount = errors.Join(errsMount, validationError)
 						}
 						previousAllowedHostPath = allowedHostPath.PathPrefix
 					}
 				}
 			}
 			// concat to global err:
-			if errsMount != nil {
-				if err == nil {
-					err = errsMount
-				} else {
-					err = fmt.Errorf("%w; %s", err, errsMount)
-				}
-			}
+			err = errors.Join(err, errsMount)
 			if !match {
 				// path didn't match against any PathPrefix in settings
-				errMsg := fmt.Sprintf("hostPath '%s' mounted as '%s' is not in the AllowedHostPaths list",
-					*volume.HostPath.Path, *mount.Name)
-				if err == nil {
-					err = errors.New(errMsg)
-				} else {
-					err = fmt.Errorf("%w; %s", err, errMsg)
-				}
+				err = errors.Join(err, fmt.Errorf("hostPath '%s' mounted as '%s' is not in the AllowedHostPaths list",
+					*volume.HostPath.Path, *mount.Name))
 			}
 		}
 	}
