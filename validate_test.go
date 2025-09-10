@@ -115,26 +115,28 @@ func TestApproval(t *testing.T) {
 			},
 		},
 	} {
-		payload, err := kubewarden_testing.BuildValidationRequestFromFixture(
-			tcase.testData,
-			&tcase.settings)
-		if err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+		t.Run(tcase.name, func(t *testing.T) {
+			payload, err := kubewarden_testing.BuildValidationRequestFromFixture(
+				tcase.testData,
+				&tcase.settings)
+			if err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		responsePayload, err := validate(payload)
-		if err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+			responsePayload, err := validate(payload)
+			if err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		var response kubewarden_protocol.ValidationResponse
-		if err := json.Unmarshal(responsePayload, &response); err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+			var response kubewarden_protocol.ValidationResponse
+			if err := json.Unmarshal(responsePayload, &response); err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		if response.Accepted != true {
-			t.Errorf("on test %q, got unexpected rejection", tcase.name)
-		}
+			if response.Accepted != true {
+				t.Errorf("on test %q, got unexpected rejection", tcase.name)
+			}
+		})
 	}
 }
 
@@ -272,31 +274,33 @@ func TestRejection(t *testing.T) {
 				"hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
 		},
 	} {
-		payload, err := kubewarden_testing.BuildValidationRequestFromFixture(
-			tcase.testData,
-			&tcase.settings)
-		if err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+		t.Run(tcase.name, func(t *testing.T) {
+			payload, err := kubewarden_testing.BuildValidationRequestFromFixture(
+				tcase.testData,
+				&tcase.settings)
+			if err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		responsePayload, err := validate(payload)
-		if err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+			responsePayload, err := validate(payload)
+			if err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		var response kubewarden_protocol.ValidationResponse
-		if err := json.Unmarshal(responsePayload, &response); err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+			var response kubewarden_protocol.ValidationResponse
+			if err := json.Unmarshal(responsePayload, &response); err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		if response.Accepted != false {
-			t.Errorf("on test %q, got unexpected approval", tcase.name)
-		}
+			if response.Accepted != false {
+				t.Errorf("on test %q, got unexpected approval", tcase.name)
+			}
 
-		if *response.Message != tcase.error {
-			t.Errorf("on test %q, got '%s' instead of '%s'",
-				tcase.name, *response.Message, tcase.error)
-		}
+			if *response.Message != tcase.error {
+				t.Errorf("on test %q, got '%s' instead of '%s'",
+					tcase.name, *response.Message, tcase.error)
+			}
+		})
 	}
 }
 
