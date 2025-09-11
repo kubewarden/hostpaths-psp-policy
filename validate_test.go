@@ -115,26 +115,28 @@ func TestApproval(t *testing.T) {
 			},
 		},
 	} {
-		payload, err := kubewarden_testing.BuildValidationRequestFromFixture(
-			tcase.testData,
-			&tcase.settings)
-		if err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+		t.Run(tcase.name, func(t *testing.T) {
+			payload, err := kubewarden_testing.BuildValidationRequestFromFixture(
+				tcase.testData,
+				&tcase.settings)
+			if err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		responsePayload, err := validate(payload)
-		if err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+			responsePayload, err := validate(payload)
+			if err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		var response kubewarden_protocol.ValidationResponse
-		if err := json.Unmarshal(responsePayload, &response); err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+			var response kubewarden_protocol.ValidationResponse
+			if err := json.Unmarshal(responsePayload, &response); err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		if response.Accepted != true {
-			t.Errorf("on test %q, got unexpected rejection", tcase.name)
-		}
+			if response.Accepted != true {
+				t.Errorf("on test %q, got unexpected rejection", tcase.name)
+			}
+		})
 	}
 }
 
@@ -204,8 +206,8 @@ func TestRejection(t *testing.T) {
 					},
 				},
 			},
-			error: "hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true';" +
-				" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
+			error: "hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'\n" +
+				"hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
 		},
 		{
 			name:     "precedence read only least specific path",
@@ -265,38 +267,40 @@ func TestRejection(t *testing.T) {
 					},
 				},
 			},
-			error: "hostPath '/data' mounted as 'test-data' should be readOnly 'false';" +
-				" hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list;" +
-				" hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list;" +
-				" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true';" +
-				" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
+			error: "hostPath '/data' mounted as 'test-data' should be readOnly 'false'\n" +
+				"hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list\n" +
+				"hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list\n" +
+				"hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'\n" +
+				"hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'",
 		},
 	} {
-		payload, err := kubewarden_testing.BuildValidationRequestFromFixture(
-			tcase.testData,
-			&tcase.settings)
-		if err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+		t.Run(tcase.name, func(t *testing.T) {
+			payload, err := kubewarden_testing.BuildValidationRequestFromFixture(
+				tcase.testData,
+				&tcase.settings)
+			if err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		responsePayload, err := validate(payload)
-		if err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+			responsePayload, err := validate(payload)
+			if err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		var response kubewarden_protocol.ValidationResponse
-		if err := json.Unmarshal(responsePayload, &response); err != nil {
-			t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
-		}
+			var response kubewarden_protocol.ValidationResponse
+			if err := json.Unmarshal(responsePayload, &response); err != nil {
+				t.Errorf("on test %q, got unexpected error '%+v'", tcase.name, err)
+			}
 
-		if response.Accepted != false {
-			t.Errorf("on test %q, got unexpected approval", tcase.name)
-		}
+			if response.Accepted != false {
+				t.Errorf("on test %q, got unexpected approval", tcase.name)
+			}
 
-		if *response.Message != tcase.error {
-			t.Errorf("on test %q, got '%s' instead of '%s'",
-				tcase.name, *response.Message, tcase.error)
-		}
+			if *response.Message != tcase.error {
+				t.Errorf("on test %q, got '%s' instead of '%s'",
+					tcase.name, *response.Message, tcase.error)
+			}
+		})
 	}
 }
 
@@ -426,11 +430,11 @@ func TestWorkloadTypes(t *testing.T) {
 			},
 		},
 	}
-	commontError := "hostPath '/data' mounted as 'test-data' should be readOnly 'false';" +
-		" hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list;" +
-		" hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list;" +
-		" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true';" +
-		" hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'"
+	commontError := "hostPath '/data' mounted as 'test-data' should be readOnly 'false'\n" +
+		"hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list\n" +
+		"hostPath '/var' mounted as 'test-var' is not in the AllowedHostPaths list\n" +
+		"hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'\n" +
+		"hostPath '/var/local/aaa' mounted as 'test-var-local-aaa' should be readOnly 'true'"
 	for _, tcase := range []struct {
 		name     string
 		kind     kubewarden_protocol.GroupVersionKind
