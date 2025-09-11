@@ -1,18 +1,29 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
 	onelog "github.com/francoispqt/onelog"
-	"github.com/kubewarden/gjson"
+	corev1 "github.com/kubewarden/k8s-objects/api/core/v1"
 	kubewarden "github.com/kubewarden/policy-sdk-go"
+	kubewarden_protocol "github.com/kubewarden/policy-sdk-go/protocol"
 )
 
 func validate(payload []byte) ([]byte, error) {
-	settings, err := NewSettingsFromValidationReq(payload)
+	// Create a ValidationRequest instance from the incoming payload
+	validationRequest := kubewarden_protocol.ValidationRequest{}
+	err := json.Unmarshal(payload, &validationRequest)
 	if err != nil {
+		return kubewarden.RejectRequest(
+			kubewarden.Message(err.Error()),
+			kubewarden.Code(400))
+	}
+
+	settings := Settings{}
+	if err = json.Unmarshal(validationRequest.Settings, &settings); err != nil {
 		return kubewarden.RejectRequest(
 			kubewarden.Message(err.Error()),
 			kubewarden.Code(400))
@@ -23,115 +34,89 @@ func validate(payload []byte) ([]byte, error) {
 		return kubewarden.AcceptRequest()
 	}
 
-	volumes := gjson.GetBytes(
-		payload,
-		"request.object.spec.volumes")
-	if !volumes.Exists() {
-		// pod defines no volumes, accepting
-		return kubewarden.AcceptRequest()
+	podSpec, err := kubewarden.ExtractPodSpecFromObject(validationRequest)
+	if err != nil {
+		return kubewarden.RejectRequest(
+			kubewarden.Message(err.Error()),
+			kubewarden.Code(400))
 	}
 
 	logger.DebugWithFields("validating pod object", func(e onelog.Entry) {
-		name := gjson.GetBytes(payload, "request.object.metadata.name").String()
-		namespace := gjson.GetBytes(payload,
-			"request.object.metadata.namespace").String()
-		e.String("name", name)
-		e.String("namespace", namespace)
+		e.String("name", validationRequest.Request.Name)
+		e.String("namespace", validationRequest.Request.Namespace)
 	})
 
-	// build list of volumeMounts from all the initContainers and containers:
-	volumeMounts := make([]gjson.Result, 0)
-	cases := []string{
-		"request.object.spec.initContainers",
-		"request.object.spec.containers",
-	}
-	for _, c := range cases {
-		containers := gjson.GetBytes(payload, c)
-		for _, container := range containers.Array() {
-			containerVolumeMounts := gjson.Get(container.String(),
-				"volumeMounts")
-			volumeMounts = append(volumeMounts, containerVolumeMounts.Array()...)
+	volumes := make([]*corev1.Volume, 0)
+	for _, volume := range podSpec.Volumes {
+		if volume.HostPath != nil {
+			volumes = append(volumes, volume)
 		}
 	}
 
-	for _, volume := range volumes.Array() {
-		if gjson.Get(volume.String(), "hostPath").Exists() {
-			// volume is of type hostPath
-			for _, mount := range volumeMounts {
+	volumeMounts := make([]*corev1.VolumeMount, 0)
+	volumeMounts = append(volumeMounts, getVolumeMounts(podSpec.InitContainers)...)
+	volumeMounts = append(volumeMounts, getVolumeMounts(podSpec.Containers)...)
 
-				// if volumeMount object matches the 'volume.name':
-				mountName := gjson.Get(mount.String(), "name").String()
-				if mountName == gjson.Get(volume.String(), "name").String() { /* == volume name */
-					// volume is a hostpath and it in use, validate against
-					// settings
-
-					readOnly := false // volumeMount.readOnly missing means 'false'
-					if gjson.Get(mount.String(), "readOnly").Exists() {
-						readOnly = gjson.Get(mount.String(), "readOnly").Bool()
-					}
-
-					path := gjson.Get(volume.String(), "hostPath.path").String()
-
-					match := false
-					var errsMount error // all errors of current mount
-					// readOnly attribute of most specific AllowedHostPath takes precendence:
-					previousAllowedHostPath := ""
-					for _, allowedHostPath := range settings.AllowedHostPaths {
-						if hasPathPrefix(path, allowedHostPath.PathPrefix) {
-							// current setting allowedHostPath matches path of volumeMount
-							if hasPathPrefix(allowedHostPath.PathPrefix, previousAllowedHostPath) {
-								// allowedHostPath is more specific (and has precendence over
-								//	past allowedHostPath), or the same path
-								match = true
-								errMount := validatePath(path, mountName, readOnly, allowedHostPath)
-								// build all errors for this mount:
-								if errMount == nil {
-									// drop errors in errsMount, we found a more
-									// specific path that validates the current
-									// mount
-									errsMount = nil
-								} else {
-									// we found even more errors for this specific mount, append
-									if errsMount == nil {
-										errsMount = errMount
-									} else {
-										errsMount = fmt.Errorf("%w; %s", errsMount, errMount)
-									}
-								}
-								previousAllowedHostPath = allowedHostPath.PathPrefix
+	for _, volume := range volumes {
+		for _, mount := range volumeMounts {
+			if *volume.Name != *mount.Name {
+				// volume and mount don't match, skip
+				continue
+			}
+			match := false
+			var errsMount error // all errors of current mount
+			// readOnly attribute of most specific AllowedHostPath takes precendence:
+			previousAllowedHostPath := ""
+			for _, allowedHostPath := range settings.AllowedHostPaths {
+				if hasPathPrefix(*volume.HostPath.Path, allowedHostPath.PathPrefix) {
+					// current setting allowedHostPath matches path of volumeMount
+					if hasPathPrefix(allowedHostPath.PathPrefix, previousAllowedHostPath) {
+						// allowedHostPath is more specific (and has precendence over
+						//	past allowedHostPath), or the same path
+						match = true
+						errMount := validatePath(*volume.HostPath.Path, *mount.Name, mount.ReadOnly, allowedHostPath)
+						// build all errors for this mount:
+						if errMount == nil {
+							// drop errors in errsMount, we found a more
+							// specific path that validates the current
+							// mount
+							errsMount = nil
+						} else {
+							// we found even more errors for this specific mount, append
+							if errsMount == nil {
+								errsMount = errMount
+							} else {
+								errsMount = fmt.Errorf("%w; %s", errsMount, errMount)
 							}
 						}
+						previousAllowedHostPath = allowedHostPath.PathPrefix
 					}
-					// concat to global err:
-					if errsMount != nil {
-						if err == nil {
-							err = errsMount
-						} else {
-							err = fmt.Errorf("%w; %s", err, errsMount)
-						}
-					}
-					if !match {
-						// path didn't match against any PathPrefix in settings
-						errMsg := fmt.Sprintf("hostPath '%s' mounted as '%s' is not in the AllowedHostPaths list",
-							path, mountName)
-						if err == nil {
-							err = errors.New(errMsg)
-						} else {
-							err = fmt.Errorf("%w; %s", err, errMsg)
-						}
-					}
+				}
+			}
+			// concat to global err:
+			if errsMount != nil {
+				if err == nil {
+					err = errsMount
+				} else {
+					err = fmt.Errorf("%w; %s", err, errsMount)
+				}
+			}
+			if !match {
+				// path didn't match against any PathPrefix in settings
+				errMsg := fmt.Sprintf("hostPath '%s' mounted as '%s' is not in the AllowedHostPaths list",
+					*volume.HostPath.Path, *mount.Name)
+				if err == nil {
+					err = errors.New(errMsg)
+				} else {
+					err = fmt.Errorf("%w; %s", err, errMsg)
 				}
 			}
 		}
 	}
-
 	if err != nil {
 		logger.DebugWithFields("rejecting pod object", func(e onelog.Entry) {
-			name := gjson.GetBytes(payload, "request.object.metadata.name").String()
-			namespace := gjson.
-				GetBytes(payload, "request.object.metadata.namespace").String()
-			e.String("name", name)
-			e.String("namespace", namespace)
+			e.String("name", validationRequest.Request.Name)
+			e.String("namespace", validationRequest.Request.Namespace)
 		})
 		return kubewarden.RejectRequest(
 			kubewarden.Message(err.Error()),
@@ -167,4 +152,12 @@ func hasPathPrefix(path string, prefix string) bool {
 		prefixTerminated = prefixTerminated + "/"
 	}
 	return strings.HasPrefix(pathTerminated, prefixTerminated)
+}
+
+func getVolumeMounts(containers []*corev1.Container) []*corev1.VolumeMount {
+	volumeMounts := make([]*corev1.VolumeMount, 0)
+	for _, container := range containers {
+		volumeMounts = append(volumeMounts, container.VolumeMounts...)
+	}
+	return volumeMounts
 }
